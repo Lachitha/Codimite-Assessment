@@ -86,3 +86,29 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
 ```
+
+## Push Terraform Files to GitHub
+
+### Step 1: Ensure the following files are in your GitHub repository
+
+- `main.tf`
+- `variables.tf`
+- `outputs.tf`
+- `terraform.tfvars`
+
+### Step 2: Commit and push these files to the main branch of your repository
+
+## Verify GitHub Actions Workflow
+
+Go to your GitHub repository.
+Navigate to the Actions tab.
+You should see the Terraform Automation workflow running automatically when you push code to the main branch.
+
+## Workflow Execution Steps
+
+Checkout Repository: Fetches the Terraform files from your GitHub repository.
+Setup Terraform: Installs the specified Terraform version.
+Authenticate to GCP: Uses the service account key stored in GCP_KEY to authenticate with Google Cloud.
+Terraform Init: Initializes the Terraform backend and prepares the state file.
+Terraform Plan: Runs terraform plan to preview changes.
+Terraform Apply: Applies the changes automatically (-auto-approve).
