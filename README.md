@@ -260,3 +260,10 @@ jobs:
 1. Expose the ArgoCD Server using port forwading to local access
 
 `kubectl port-forward svc/argocd-server -n argocd 8080:443`
+
+3. Log into ArgoCD
+
+1. username is admin.
+1. Retrieve the admin password.
+
+`kubectl get secret argocd-initial-admin-secret -n argocd -o yaml | grep password | awk '{print $2}' | base64 -d`
