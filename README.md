@@ -521,3 +521,27 @@ jobs:
 - Run Trivy scan: This runs the Trivy scan on the image. The --no-progress flag disables the progress bar, and --exit-code 1 ensures that the pipeline fails if vulnerabilities are found.
 
 Trivy is a tool for checking Docker images for configuration errors and vulnerabilities in security. It examines the image for known vulnerabilities in application dependencies, operating system packages, and container-specific problems. You may avoid the deployment of insecure containers by incorporating Trivy into your CI/CD pipeline, which automatically identifies security threats early in the development cycle. It helps guarantee that only safe, current images are used in production by giving quick, real-time feedback on vulnerabilities. Trivy is user-friendly, open-source, and contributes to the general security of containerised apps.
+
+## Problem-Solving & Troubleshooting Scenario
+
+#### Troubleshooting Approach:
+
+1. Examine Logs: Check CloudSQL and application logs for network timeout-related errors.
+2. Verify connectivity by making sure CloudSQL firewall rules permit access from GKE and by looking at CloudSQL's VPC peering or DNS configurations.
+3. Network Latency: To check connectivity to CloudSQL, use tools like ping or traceroute from pods.
+4. Resource Limits: Verify that the CPU and RAM of CloudSQL and pods are not overloaded.
+5. Check the health of the GKE node and the pod status for any problems that might be interfering with communication.
+
+#### Resolution & Prevention:
+
+1. Fix Connectivity Issues: To fix connectivity issues, adjust firewall rules, VPC peering, or DNS.
+2. Improve Performance: Use connection pooling, autoscale application pods to control demand, and scale CloudSQL.
+3. Monitor & Prevent: To prevent future problems, use Google Cloud Monitoring, configure alarms, and put network controls and resource limits in place.
+4. Backup & Recovery: Make sure that disaster recovery plans and routine CloudSQL backups are in place.
+
+#### Tools:
+
+GKE Tools: kubectl, Cloud Console, Kubernetes Dashboard.
+CloudSQL: Logs, performance insights.
+Network Diagnostics: ping, traceroute.
+Monitoring: Google Cloud Operations Suite,Datadog
