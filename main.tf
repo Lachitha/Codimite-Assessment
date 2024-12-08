@@ -81,7 +81,7 @@ resource "google_container_cluster" "gke_cluster" {
 
 node_pool {
   name       = "general-pool"
-  node_count = 2 
+  node_count = 1 
 
   autoscaling {
       min_node_count = 1
@@ -97,7 +97,7 @@ node_pool {
 
 node_pool {
   name       = "cpu-pool"
-  node_count = 2
+  node_count = 1
 
   autoscaling {
       min_node_count = 1
