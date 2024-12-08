@@ -112,3 +112,36 @@ jobs:
 4. Terraform Init: Initializes the Terraform backend and prepares the state file.
 5. Terraform Plan: Runs terraform plan to preview changes.
 6. Terraform Apply: Applies the changes automatically (-auto-approve).
+
+## GCP Concepts & Networking
+
+### Task
+
+1. ![Architectural Diagram](img/GCP%20Concepts%20&%20Networking.png)
+2. Explain Diagram:
+
+3. GCP VPC: Covers the whole configuration, including networking resources and regions.
+4. Regions:Each of the two regions—Region 1 and Region 2—has many subnets for resource segregation.
+5. Subnets: GKE clusters for workload hosting are located in Subnets 1 and 2.
+6. CloudSQL is hosted by Private Subnet to provide safe database access.
+7. Caching services are the focus of the Redis Subnet.
+8. Cloud NAT: Enables private subnet resources to access the internet without being immediately exposed.
+9. Services That Are Shared VPC: Stands for a VPC that connects to the primary VPC in order to enable resource sharing.
+
+### Enhances Security
+
+1. IAM and RBAC: To manage who may access and alter resources, use Kubernetes clusters and fine-grained Identity and Access Management (IAM) roles and Role-Based Access Control (RBAC) for all resources.
+2. Private Subnet Access: Verify the privacy of subnets housing critical resources such as Redis and CloudSQL. To establish and implement security perimeters, use VPC Service Controls.
+3. Network Policies: To limit communication between pods to what is required, use Kubernetes network policies.
+4. Strict firewall rules should be used for every subnet to limit incoming and outgoing traffic. Permit just the necessary IP ranges and ports.
+5. Encryption: Turn on encryption for all services, both in transit and at rest. Make use of Cloud KMS or Google-managed encryption keys.
+6. Cloud NAT: For safe and regulated internet access to private resources, use Cloud NAT.
+7. Shared VPC: For centralised security and safe inter-project communication management, use Shared VPC.
+
+### Cost Reduction
+
+1. Regional Placement: Placing services in the same area lowers the cost of data transport across regions.
+2. Managed Services: By using Redis, CloudSQL, and GKE as managed services, infrastructure expenses and operational overhead are decreased.
+3. Cloud NAT: Reduces the expense of IP reservations by avoiding the assignment of public IPs to resources.
+4. Autoscaling: Allow GKE clusters to adjust their resource levels in response to demand by turning on autoscaling.
+5. Cloud Monitoring: To find unused resources and optimise, use cloud monitoring and logging.
