@@ -1,0 +1,99 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Set up Google Cloud authentication
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      # Configure Docker for GCR
+      - name: Configure Docker to use GCR
+        run: |
+          gcloud auth configure-docker
+
+      # Build the Docker image
+      - name: Build Docker Image
+        run: |
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/Auth-microservice:${{ github.sha }} ./backend
+
+      # Push the Docker image to GCR
+      - name: Push Docker Image to GCR
+        run: |
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/Auth-microservice:${{ github.sha }}
+
+  test-and-lint:
+    name: Test and Lint Code
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Run linting
+      - name: Run Linter
+        run: |
+
+          npm install && npm run lint
+
+      # Run tests
+      - name: Run Tests
+        run: |
+
+          npm test
+
+  deploy-to-gke:
+    name: Deploy to GKE using ArgoCD
+    runs-on: ubuntu-latest
+    needs: test-and-lint
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Authenticate with Google Cloud
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      # Install ArgoCD CLI
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
+
+      # Authenticate with ArgoCD
+      - name: Authenticate with ArgoCD
+        run: |
+          argocd login ${{ secrets.ARGOCD_SERVER }} \
+            --username ${{ secrets.ARGOCD_USERNAME }} \
+            --password ${{ secrets.ARGOCD_PASSWORD }} \
+            --grpc-web
+
+      # Update ArgoCD application
+      - name: Update ArgoCD Application
+        run: |
+          argocd app set Auth-microservice \
+            --repo https://github.com/${{ github.repository }} \
+            --path ./k8s \
+            --revision main \
+            --values gcr.io/${{ secrets.GCP_PROJECT_ID }}/Auth-microservice:${{ github.sha }}
+          argocd app sync Auth-microservice

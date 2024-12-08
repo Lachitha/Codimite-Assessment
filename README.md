@@ -129,7 +129,7 @@ jobs:
 8. Cloud NAT: Enables private subnet resources to access the internet without being immediately exposed.
 9. Services That Are Shared VPC: Stands for a VPC that connects to the primary VPC in order to enable resource sharing.
 
-### Enhances Security
+##### Enhances Security
 
 1. IAM and RBAC: To manage who may access and alter resources, use Kubernetes clusters and fine-grained Identity and Access Management (IAM) roles and Role-Based Access Control (RBAC) for all resources.
 2. Private Subnet Access: Verify the privacy of subnets housing critical resources such as Redis and CloudSQL. To establish and implement security perimeters, use VPC Service Controls.
@@ -139,10 +139,124 @@ jobs:
 6. Cloud NAT: For safe and regulated internet access to private resources, use Cloud NAT.
 7. Shared VPC: For centralised security and safe inter-project communication management, use Shared VPC.
 
-### Cost Reduction
+##### Cost Reduction
 
 1. Regional Placement: Placing services in the same area lowers the cost of data transport across regions.
 2. Managed Services: By using Redis, CloudSQL, and GKE as managed services, infrastructure expenses and operational overhead are decreased.
 3. Cloud NAT: Reduces the expense of IP reservations by avoiding the assignment of public IPs to resources.
 4. Autoscaling: Allow GKE clusters to adjust their resource levels in response to demand by turning on autoscaling.
 5. Cloud Monitoring: To find unused resources and optimise, use cloud monitoring and logging.
+
+## CI/CD & GitHub Actions
+
+1. Write a sample GitHub Actions workflow YAML file to:
+
+```yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Set up Google Cloud authentication
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      # Configure Docker for GCR
+      - name: Configure Docker to use GCR
+        run: |
+          gcloud auth configure-docker
+
+      # Build the Docker image
+      - name: Build Docker Image
+        run: |
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/Auth-microservice:${{ github.sha }} ./backend
+
+      # Push the Docker image to GCR
+      - name: Push Docker Image to GCR
+        run: |
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/Auth-microservice:${{ github.sha }}
+
+  test-and-lint:
+    name: Test and Lint Code
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Run linting
+      - name: Run Linter
+        run: |
+
+          npm install && npm run lint
+
+      # Run tests
+      - name: Run Tests
+        run: |
+
+          npm test
+
+  deploy-to-gke:
+    name: Deploy to GKE using ArgoCD
+    runs-on: ubuntu-latest
+    needs: test-and-lint
+
+    steps:
+      # Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Authenticate with Google Cloud
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      # Install ArgoCD CLI
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
+
+      # Authenticate with ArgoCD
+      - name: Authenticate with ArgoCD
+        run: |
+          argocd login ${{ secrets.ARGOCD_SERVER }} \
+            --username ${{ secrets.ARGOCD_USERNAME }} \
+            --password ${{ secrets.ARGOCD_PASSWORD }} \
+            --grpc-web
+
+      # Update ArgoCD application
+      - name: Update ArgoCD Application
+        run: |
+          argocd app set Auth-microservice \
+            --repo https://github.com/${{ github.repository }} \
+            --path ./k8s \
+            --revision main \
+            --values gcr.io/${{ secrets.GCP_PROJECT_ID }}/Auth-microservice:${{ github.sha }}
+          argocd app sync Auth-microservice
+```
+
+4. Explain how you configure the deployment through ArgoCD.
+
+1. Install ArgoCD
+
+1. Expose the ArgoCD Server using port forwading to local access
+
+`kubectl port-forward svc/argocd-server -n argocd 8080:443`
