@@ -300,3 +300,224 @@ spec:
 2. Update and Sync Application: The pipeline updates the ArgoCD application to use the latest image and syncs it:
    `argocd app set my-microservice --revision main --values gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-microservice:${{ github.sha }}`
    `argocd app sync my-microservice`
+
+   ## Security & Automation Guardrails
+
+   ### Write a sample Conftest policy that ensures all Terraform code includes encryption for GCS buckets and restrict the project
+
+   1. Install Conftest.
+   2. Create a Conftest Policy Directory.
+   3. Create a file gcs_policy.rego:
+
+   ```package main
+
+
+   ```
+
+deny[msg] {
+resource := input.resource*changes[*]
+resource.type == "google_storage_bucket"
+encryption := resource.change.after.encryption
+encryption == null
+msg := sprintf("GCS bucket %s does not have encryption enabled.", [resource.name])
+}
+
+deny[msg] {
+resource := input.resource*changes[*]
+resource.type == "google_storage_bucket"
+project := resource.change.after.project
+not project_allowed(project)
+msg := sprintf("GCS bucket %s is in a restricted project: %s.", [resource.name, project])
+}
+
+project_allowed(project) {
+project == "codimite-assessment"
+}
+
+```
+
+
+```
+
+4. Update terraform code.
+
+```
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
+provider "google-beta" {
+  project = var.project_id
+  region  = var.region
+}
+
+resource "google_storage_bucket" "terraform_state" {
+  name          = "${var.project_id}-terraform-state"
+  location      = var.region
+  storage_class = "STANDARD"
+
+
+  encryption {
+    default_kms_key_name = "projects/${var.project_id}/locations/${var.region}/keyRings/my-key-ring/cryptoKeys/my-key"
+  }
+
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      age = 365
+    }
+  }
+
+
+}
+
+terraform {
+  backend "gcs" {
+    bucket = "my-terraform-state-buckets"
+    prefix = "terraform/state"
+  }
+}
+
+resource "google_compute_network" "vpc_network" {
+  name = "gke-vpc"
+}
+
+resource "google_compute_subnetwork" "general_subnet" {
+  name          = "general-subnet"
+  ip_cidr_range = "10.0.0.0/24"
+  region        = var.region
+  network       = google_compute_network.vpc_network.id
+
+  secondary_ip_range {
+    range_name    = "pods"
+    ip_cidr_range = "10.1.0.0/16"
+  }
+
+  secondary_ip_range {
+    range_name    = "services"
+    ip_cidr_range = "10.2.0.0/20"
+  }
+}
+
+resource "google_compute_subnetwork" "cpu_subnet" {
+  name          = "cpu-subnet"
+  ip_cidr_range = "10.0.1.0/24"
+  region        = var.region
+  network       = google_compute_network.vpc_network.id
+
+  secondary_ip_range {
+    range_name    = "pods"
+    ip_cidr_range = "10.3.0.0/16"
+  }
+
+  secondary_ip_range {
+    range_name    = "services"
+    ip_cidr_range = "10.4.0.0/20"
+  }
+}
+
+resource "google_container_cluster" "gke_cluster" {
+  name       = "gke-cluster"
+  location   = var.region
+  network    = google_compute_network.vpc_network.name
+  subnetwork = google_compute_subnetwork.general_subnet.name
+
+  ip_allocation_policy {
+    cluster_secondary_range_name  = "pods"
+    services_secondary_range_name = "services"
+  }
+
+  node_pool {
+    name       = "general-pool"
+    node_count = 1
+
+    autoscaling {
+      min_node_count = 1
+      max_node_count = 3
+    }
+
+    node_config {
+      machine_type = "e2-small"
+      disk_size_gb = 50
+      disk_type    = "pd-standard"
+    }
+  }
+
+  node_pool {
+    name       = "cpu-pool"
+    node_count = 1
+
+    autoscaling {
+      min_node_count = 1
+      max_node_count = 3
+    }
+
+    node_config {
+      machine_type = "e2-highcpu-2"
+      disk_size_gb = 50
+      disk_type    = "pd-standard"
+    }
+  }
+}
+```
+
+5. Validate Terraform Code.
+6. Initialize Terraform.
+7. Generate Terraform Plan Create the binary plan file.
+8. Test with Conftest Verify the plan using Conftest.
+
+### Write a Trivy command to scan a Docker image during a GitHub Actions pipeline.
+
+1. this is the workflow yml file we can create this seperate or can add as stage in previouse yml file this is the stage code.
+
+```
+name: Docker Image Vulnerability Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Set up Trivy
+        run: |
+          curl -sfL https://github.com/aquasecurity/trivy/releases/download/v0.39.1/trivy_0.39.1_Linux-64bit.tar.gz | tar -xzv -C /usr/local/bin
+
+      - name: Build Docker image
+        run: |
+          docker build -t your-image-name .
+
+      - name: Run Trivy scan
+        run: |
+          trivy image --no-progress --exit-code 1 your-image-name
+
+      - name: Push image (optional)
+        run: |
+          docker push your-image-name
+```
+
+2.  Explanation of the code.
+
+- Checkout repository: The pipeline first checks out the code from the repository.
+- Set up Docker Buildx: This action sets up Docker Buildx to handle multi-platform builds (if needed).
+- Set up Trivy: It installs Trivy (version 0.39.1 here) to scan the Docker image for vulnerabilities.
+- Build Docker image: This step builds the Docker image tagged as your-image-name.
+- Run Trivy scan: This runs the Trivy scan on the image. The --no-progress flag disables the progress bar, and --exit-code 1 ensures that the pipeline fails if vulnerabilities are found.
+
+Trivy is a tool for checking Docker images for configuration errors and vulnerabilities in security. It examines the image for known vulnerabilities in application dependencies, operating system packages, and container-specific problems. You may avoid the deployment of insecure containers by incorporating Trivy into your CI/CD pipeline, which automatically identifies security threats early in the development cycle. It helps guarantee that only safe, current images are used in production by giving quick, real-time feedback on vulnerabilities. Trivy is user-friendly, open-source, and contributes to the general security of containerised apps.
