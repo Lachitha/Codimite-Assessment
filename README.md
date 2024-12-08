@@ -36,8 +36,6 @@
    - **GCP_PROJECT**
    - **GCP_REGION**
 
----
-
 ## GitHub Actions Workflow Setup
 
 You can automate your Terraform commands using a GitHub Actions workflow.
@@ -113,12 +111,15 @@ jobs:
 5. Terraform Plan: Runs terraform plan to preview changes.
 6. Terraform Apply: Applies the changes automatically (-auto-approve).
 
+---
+
 ## GCP Concepts & Networking
 
 ### Task
 
-1. ![Architectural Diagram](img/GCP%20Concepts%20&%20Networking.png)
-2. Explain Diagram:
+1.  ![Architectural Diagram](img/GCP%20Concepts%20&%20Networking.png)
+
+#### 2. Explain Diagram:
 
 3. GCP VPC: Covers the whole configuration, including networking resources and regions.
 4. Regions:Each of the two regions—Region 1 and Region 2—has many subnets for resource segregation.
