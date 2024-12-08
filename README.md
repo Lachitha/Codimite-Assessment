@@ -253,17 +253,50 @@ jobs:
           argocd app sync Auth-microservice
 ```
 
-4. Explain how you configure the deployment through ArgoCD.
+#### Explain how you configure the deployment through ArgoCD.
 
-1. Install ArgoCD
+1. Install ArgoCD.
 
-1. Expose the ArgoCD Server using port forwading to local access
+2. Expose the ArgoCD Server using port forwading to local access.
 
 `kubectl port-forward svc/argocd-server -n argocd 8080:443`
 
-3. Log into ArgoCD
-
-1. username is admin.
-1. Retrieve the admin password.
+3. Log into ArgoCD. username is admin. Retrieve the admin password using this below.
 
 `kubectl get secret argocd-initial-admin-secret -n argocd -o yaml | grep password | awk '{print $2}' | base64 -d`
+
+4. Create a Kubernetes manifest for the ArgoCD application.
+
+```apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-microservice
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Lachitha/Codimite-Assessment.git
+    targetRevision: main
+    path: backend/k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: my-namespace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+5. `kubectl apply -f deploymnet.yaml`
+
+6. `argocd app sync Auth-microservice`
+
+#### ArgoCD and GitHub Actions Integration
+
+1. GitHub Actions authenticates with ArgoCD using the CLI in the deploy-to-gke job:
+   `argocd login ${{ secrets.ARGOCD_SERVER }} \
+--username ${{ secrets.ARGOCD_USERNAME }} \
+--password ${{ secrets.ARGOCD_PASSWORD }}`
+2. Update and Sync Application: The pipeline updates the ArgoCD application to use the latest image and syncs it:
+   `argocd app set my-microservice --revision main --values gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-microservice:${{ github.sha }}`
+   `argocd app sync my-microservice`
