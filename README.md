@@ -100,15 +100,15 @@ jobs:
 
 ## Verify GitHub Actions Workflow
 
-Go to your GitHub repository.
-Navigate to the Actions tab.
-You should see the Terraform Automation workflow running automatically when you push code to the main branch.
+1. Go to your GitHub repository.
+2. Navigate to the Actions tab.
+3. You should see the Terraform Automation workflow running automatically when you push code to the main branch.
 
 ## Workflow Execution Steps
 
-Checkout Repository: Fetches the Terraform files from your GitHub repository.
-Setup Terraform: Installs the specified Terraform version.
-Authenticate to GCP: Uses the service account key stored in GCP_KEY to authenticate with Google Cloud.
-Terraform Init: Initializes the Terraform backend and prepares the state file.
-Terraform Plan: Runs terraform plan to preview changes.
-Terraform Apply: Applies the changes automatically (-auto-approve).
+1. Checkout Repository: Fetches the Terraform files from your GitHub repository.
+2. Setup Terraform: Installs the specified Terraform version.
+3. Authenticate to GCP: Uses the service account key stored in GCP_KEY to authenticate with Google Cloud.
+4. Terraform Init: Initializes the Terraform backend and prepares the state file.
+5. Terraform Plan: Runs terraform plan to preview changes.
+6. Terraform Apply: Applies the changes automatically (-auto-approve).
