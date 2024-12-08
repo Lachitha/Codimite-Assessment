@@ -1,0 +1,40 @@
+name: Terraform Automation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout Repository
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    # Step 2: Setup Terraform
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.4.6
+
+    # Step 3: Authenticate with Google Cloud
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v0
+      with:
+        credentials_json: ${{ secrets.GCP_KEY }}
+
+    # Step 4: Terraform Init
+    - name: Terraform Init
+      run: terraform init
+
+    # Step 5: Terraform Plan
+    - name: Terraform Plan
+      run: terraform plan -var="project_id=${{ secrets.GCP_PROJECT }}" -var="region=${{ secrets.GCP_REGION }}"
+
+    # Step 6: Terraform Apply (Manual Approval Recommended)
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main'
+      run: terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT }}" -var="region=${{ secrets.GCP_REGION }}"
